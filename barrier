@@ -1,0 +1,54 @@
+from threading import Lock, Condition, Thread, current_thread
+import time
+
+
+class MyBarrier:
+    def __init__(self, limit):
+        self.limit = limit
+        self.count = 0
+        self.lock = Lock()
+        self.cv = Condition(self.lock)
+        self.threads_to_release = 0
+    
+    def wait(self):
+        with self.cv:
+            self.count += 1
+            while (self.count < self.limit and self.threads_to_release == 0):
+                self.cv.wait()
+            
+            if self.threads_to_release == 0:
+                self.threads_to_release = self.limit
+            
+            self.count -= 1
+            self.threads_to_release -= 1
+            print("{0} released {1}".format(current_thread().name, self.count), flush=True)
+            self.cv.notify_all()
+
+def thread_process(sleep_for):
+    time.sleep(sleep_for)
+    print("Thread {0} reached the barrier".format(current_thread().name), flush=True)
+    barrier.wait()
+
+    time.sleep(sleep_for)
+    print("Thread {0} reached the barrier".format(current_thread().name))
+    barrier.wait()
+
+    time.sleep(sleep_for)
+    print("Thread {0} reached the barrier".format(current_thread().name))
+    barrier.wait()
+
+
+if __name__ == "__main__":
+    barrier = MyBarrier(3)
+
+    t1 = Thread(target=thread_process, args=(0,))
+    t2 = Thread(target=thread_process, args=(0.5,))
+    t3 = Thread(target=thread_process, args=(1.5,))
+
+    t1.start()
+    t2.start()
+    t3.start()
+
+    t1.join()
+    t2.join()
+    t3.join()
